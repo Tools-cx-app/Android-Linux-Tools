@@ -14,7 +14,7 @@ enum Commands {
     /// Install the linux
     Install {
         /// Download the address of rootfs.
-        #[arg(long, default_value = "")]
+        #[arg(long, default_value = None)]
         mirror: Option<String>,
     },
 }
