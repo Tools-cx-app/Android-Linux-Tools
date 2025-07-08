@@ -50,6 +50,21 @@ pub fn run() -> Result<()> {
                 eprintln!("Error: target is not empty");
                 std::process::exit(3);
             }
+
+            let extra = option_to_str(option_to_str(rootfs.extension()).to_str());
+
+            match extra {
+                "zip" => {
+                    println!("rootfs type is zip");
+                }
+                "xz" => {
+                    println!("rootfs type is zip");
+                }
+                _ => {
+                    eprintln!("Error");
+                    std::process::exit(4);
+                }
+            }
         }
     }
 
