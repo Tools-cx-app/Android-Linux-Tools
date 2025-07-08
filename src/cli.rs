@@ -1,3 +1,6 @@
+use std::{fs, path::Path};
+
+use anyhow::Result;
 use clap::Parser;
 
 use crate::utils::option_to_str;
@@ -13,27 +16,42 @@ struct Cli {
 enum Commands {
     /// Install the linux
     Install {
-        /// Download the address of rootfs.
-        #[arg(long, default_value = None)]
-        mirror: Option<String>,
+        /// Path of rootfs.
+        rootfs: String,
+        /// Target path
+        target: String,
     },
 }
 
-pub fn run() {
+pub fn run() -> Result<()> {
     let args = Cli::parse();
 
     match args.command {
-        Commands::Install { mirror } => {
-            let url = {
-                if mirror == None {
-                    "https://images.linuxcontainers.org".to_string()
-                } else if option_to_str(mirror.clone()).starts_with("https") {
-                    option_to_str(mirror).to_string()
-                } else {
-                    String::from(format!("https://{}", option_to_str(mirror)))
+        Commands::Install { rootfs, target } => {
+            let rootfs = Path::new(rootfs.as_str());
+            let target = Path::new(target.as_str());
+
+            if !rootfs.exists() {
+                eprintln!("Error: rootfs is not exists");
+                std::process::exit(1);
+            }
+            if !target.exists() {
+                if let Err(e) = fs::create_dir_all(target) {
+                    eprintln!("Error: create target is falied");
+                    std::process::exit(1);
                 }
-            };
-            println!("{}", url);
+            }
+            if target.is_file() {
+                eprintln!("Error: target is file");
+                std::process::exit(2);
+            }
+            let target_dir = target.read_dir()?;
+            if target_dir.count() > 0 as usize {
+                eprintln!("Error: target is not empty");
+                std::process::exit(3);
+            }
         }
     }
+
+    Ok(())
 }
