@@ -3,7 +3,7 @@ use std::{fs, path::Path};
 use anyhow::Result;
 use clap::Parser;
 
-use crate::utils::option_to_str;
+use crate::utils::{compress::zip,, option_to_str};
 
 #[derive(Parser)]
 #[command(author,  about, long_about = None)]
@@ -36,7 +36,7 @@ pub fn run() -> Result<()> {
                 std::process::exit(1);
             }
             if !target.exists() {
-                if let Err(e) = fs::create_dir_all(target) {
+                if let Err(_) = fs::create_dir_all(target) {
                     eprintln!("Error: create target is falied");
                     std::process::exit(1);
                 }
@@ -56,9 +56,10 @@ pub fn run() -> Result<()> {
             match extra {
                 "zip" => {
                     println!("rootfs type is zip");
+                    zip::extract(rootfs, target)?;
                 }
                 "xz" => {
-                    println!("rootfs type is zip");
+                    println!("rootfs type is xz");
                 }
                 _ => {
                     eprintln!("Error");
