@@ -3,7 +3,7 @@ use std::{fs, path::Path};
 use anyhow::Result;
 use clap::Parser;
 
-use crate::utils::{compress::zip,, option_to_str};
+use crate::utils::{compress::zip, option_to_str};
 
 #[derive(Parser)]
 #[command(author,  about, long_about = None)]
