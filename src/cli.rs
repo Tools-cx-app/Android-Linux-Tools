@@ -43,17 +43,17 @@ pub fn run() -> Result<()> {
             let target = Path::new(target.as_str());
 
             if !rootfs.exists() {
-                eprintln!("Error: rootfs is not exists");
+                eprintln!("Error: {} does not exist.", rootfs);
                 std::process::exit(1);
             }
             if !target.exists() {
                 if let Err(_) = fs::create_dir_all(target) {
-                    eprintln!("Error: create target is falied");
+                    eprintln!("Error: failed to create {}.", target);
                     std::process::exit(1);
                 }
             }
             if target.is_file() {
-                eprintln!("Error: target is file");
+                eprintln!("Error: {} is a file.", target);
                 std::process::exit(2);
             }
             let target_dir = target.read_dir()?;
