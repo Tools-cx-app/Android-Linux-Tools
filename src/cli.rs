@@ -1,4 +1,4 @@
-use std::{fs, path::Path};
+use std::{fs, io::Write, path::Path};
 
 use anyhow::Result;
 use clap::Parser;
@@ -53,6 +53,7 @@ pub fn run() -> Result<()> {
 
             let extra = option_to_str(option_to_str(rootfs.extension()).to_str());
 
+            println!("extracting rootfs to target");
             match extra {
                 "zip" => {
                     println!("rootfs type is zip");
@@ -66,6 +67,19 @@ pub fn run() -> Result<()> {
                     std::process::exit(4);
                 }
             }
+
+            fs::remove_file(target.join("/etc/resolv.conf"))?;
+            let mut resolv = fs::OpenOptions::new()
+                .read(true)
+                .write(true)
+                .create(true)
+                .open(target.join("/etc/resolv.conf"))?;
+            resolv.write(
+                r"nameserver 8.8.8.8
+                nameserver 114.114.114.114"
+                    .as_bytes(),
+            )?;
+            println!("install is done");
         }
     }
 
