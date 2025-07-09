@@ -58,9 +58,9 @@ pub fn run() -> Result<()> {
                     println!("rootfs type is zip");
                     zip::extract(rootfs, target)?;
                 }
-                "xz" => {
+                /*"xz" => {
                     println!("rootfs type is xz");
-                }
+                }*/
                 _ => {
                     eprintln!("Error");
                     std::process::exit(4);
