@@ -1,4 +1,10 @@
-use std::{fs, io::Write, path::Path};
+use std::{
+    fs::{self, Permissions},
+    io::Write,
+    os::unix::fs::PermissionsExt,
+    path::Path,
+    process::Command,
+};
 
 use anyhow::Result;
 use clap::Parser;
@@ -18,6 +24,11 @@ enum Commands {
     Install {
         /// Path of rootfs.
         rootfs: String,
+        /// Target path
+        target: String,
+    },
+    /// Remove the linux
+    Remove {
         /// Target path
         target: String,
     },
@@ -80,6 +91,19 @@ pub fn run() -> Result<()> {
                     .as_bytes(),
             )?;
             println!("install is done");
+        }
+        Commands::Remove { target } => {
+            let target = Path::new(target.as_str());
+
+            fs::set_permissions(target, PermissionsExt::from_mode(0777));
+            let output = Command::new("chattr")
+                .args(["-R", "-i", option_to_str(target.to_str())])
+                .output()?;
+            if !output.status.success() {
+                eprintln!("Error: can't chattr to target");
+            }
+
+            fs::remove_dir_all(target)?;
         }
     }
 
