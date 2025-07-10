@@ -43,28 +43,28 @@ pub fn run() -> Result<()> {
             let target = Path::new(target.as_str());
 
             if !rootfs.exists() {
-                eprintln!("Error: {} does not exist.", rootfs);
+                eprintln!("Error: {} does not exist.", rootfs.display());
                 std::process::exit(1);
             }
             if !target.exists() {
                 if let Err(_) = fs::create_dir_all(target) {
-                    eprintln!("Error: failed to create {}.", target);
+                    eprintln!("Error: failed to create {}.", target.display());
                     std::process::exit(1);
                 }
             }
             if target.is_file() {
-                eprintln!("Error: {} is a file.", target);
+                eprintln!("Error: {} is a file.", target.display());
                 std::process::exit(2);
             }
             let target_dir = target.read_dir()?;
             if target_dir.count() > 0 as usize {
-                eprintln!("Error: target is not empty");
+                eprintln!("Error: {} is not empty", target.display());
                 std::process::exit(3);
             }
 
             let extra = option_to_str(option_to_str(rootfs.extension()).to_str());
 
-            println!("extracting rootfs to target");
+            println!("extracting {} to {}", rootfs.display(), target.display());
             match extra {
                 "zip" => {
                     println!("rootfs type is zip");
@@ -100,7 +100,7 @@ pub fn run() -> Result<()> {
                 .args(["-R", "-i", option_to_str(target.to_str())])
                 .output()?;
             if !output.status.success() {
-                eprintln!("Error: can't chattr to target");
+                eprintln!("Error: can't chattr to {}", target.display());
             }
 
             fs::remove_dir_all(target)?;
