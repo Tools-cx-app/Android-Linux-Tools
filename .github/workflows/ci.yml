@@ -1,0 +1,70 @@
+name: ci-build
+on:
+  push:
+env:
+  CARGO_TERM_COLOR: always
+jobs:
+  build:
+    if: github.event_name == 'push'
+    runs-on: ubuntu-latest
+    env:
+      NDK_HOME: ${{ github.workspace }}/ndk
+      CARGO_TARGET_DIR: target
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      
+      - name: Setup ndk
+        run: |
+          ndk_url=$(wget -qO- https://github.com/android/ndk/releases/latest | grep -e 'https://dl.google.com/android/repository/android-ndk-.*-linux.zip' | sed -n 's/.*<a href="\([^"]*\)".*/\1/p')
+          wget -O ndk.zip $ndk_url -nv
+          mkdir -p ~/ndk_temp
+          unzip ndk.zip -d ~/ndk_temp 2>&1 > /dev/null
+          mv ~/ndk_temp/*/* ~/ndk_temp
+      
+      # 缓存Rust依赖
+      - name: Cache Rust dependencies
+        uses: actions/cache@v4
+        id: cache-cargo
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+            ${{ env.CARGO_TARGET_DIR }}
+          key: cargo-${{ runner.os }}-${{ hashFiles('**/Cargo.lock') }}
+          restore-keys: |
+            cargo-${{ runner.os }}-
+      
+      # Rust工具链设置
+      - name: Setup Rust toolchains
+        run: |
+          rustup default nightly
+          rustup target add aarch64-linux-android
+          rustup component add rust-src
+      
+      # 安装构建依赖
+      - name: Install build dependencies
+        run: |
+          sudo apt update
+          sudo apt install -y gcc-multilib patch
+          cargo install cargo-ndk --locked
+      
+      # 构建项目
+      - name: Build
+        run: |
+          export ANDROID_NDK_HOME=~/ndk_temp
+          export ANDROID_NDK_ROOT=~/ndk_temp
+          
+          # 构建发布版本
+          cargo ndk -t arm64-v8a build -r > out.log
+
+      # 上传结果
+      - name: Upload
+        env:
+          BOT_TOKEN: ${{ secrets.BOT_TOKEN }}
+        run: |
+          curl -v "https://api.telegram.org/bot${BOT_TOKEN}/sendMediaGroup" \
+               -F "chat_id=7813439401" \
+               -F "media=[{\"type\":\"document\",\"media\":\"attach://file\",\"parse_mode\":\"MarkdownV2\",\"caption\":\"Build log\"}]" \
+               -F "file=@out.log"
