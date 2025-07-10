@@ -57,7 +57,7 @@ jobs:
           export ANDROID_NDK_ROOT=~/ndk_temp
           
           # 构建发布版本
-          nohup cargo ndk -t arm64-v8a build -r > build.log 2>&1 &
+          cargo ndk -t arm64-v8a build -r 2>&1 | tee build.log
       # 上传结果
       - name: Upload
         env:
