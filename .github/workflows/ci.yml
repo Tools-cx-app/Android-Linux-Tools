@@ -57,7 +57,8 @@ jobs:
           export ANDROID_NDK_ROOT=~/ndk_temp
           
           # 构建发布版本
-          nohup cargo ndk -t arm64-v8a build -r > out.log
+          nohup cargo ndk -t arm64-v8a build -r
+          mv nohup.out build.log
 
       # 上传结果
       - name: Upload
@@ -67,4 +68,4 @@ jobs:
           curl -v "https://api.telegram.org/bot${BOT_TOKEN}/sendMediaGroup" \
                -F "chat_id=7813439401" \
                -F "media=[{\"type\":\"document\",\"media\":\"attach://file\",\"parse_mode\":\"MarkdownV2\",\"caption\":\"Build log\"}]" \
-               -F "file=@out.log"
+               -F "file=@build.log"
