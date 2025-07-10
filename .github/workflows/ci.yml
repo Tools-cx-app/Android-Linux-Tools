@@ -51,4 +51,4 @@ jobs:
         run: |
           curl -v "https://api.telegram.org/bot${BOT_TOKEN}/sendMessage" \
                -F chat_id="7813439401" \
-               -F text="state: $STATE"
+               -F text="state: ${STATE}"
