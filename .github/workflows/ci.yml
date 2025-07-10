@@ -47,7 +47,7 @@ jobs:
       - name: Upload
         env:
           BOT_TOKEN: ${{ secrets.BOT_TOKEN }}
-          STATE: $GITHUB_ENV
+          STATE: ${{ env.STATE }}
         run: |
           curl -v "https://api.telegram.org/bot${BOT_TOKEN}/sendMessage" \
                -F chat_id="7813439401" \
