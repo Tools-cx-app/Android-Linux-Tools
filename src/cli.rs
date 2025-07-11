@@ -10,7 +10,6 @@ use std::{
 
 use anyhow::Result;
 use clap::Parser;
-use libc::jrand48;
 
 use crate::utils::{compress::zip, mount, option_to_str};
 
