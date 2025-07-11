@@ -1,15 +1,18 @@
 use std::{
-    fs::{self, Permissions},
+    ffi::CString,
+    fs,
     io::Write,
-    os::unix::fs::PermissionsExt,
+    os::unix::fs::{PermissionsExt, symlink},
     path::Path,
     process::Command,
+    ptr,
 };
 
 use anyhow::Result;
 use clap::Parser;
+use libc::jrand48;
 
-use crate::utils::{compress::zip, option_to_str};
+use crate::utils::{compress::zip, mount, option_to_str};
 
 #[derive(Parser)]
 #[command(author,  about, long_about = None)]
@@ -29,6 +32,11 @@ enum Commands {
     },
     /// Remove the linux
     Remove {
+        /// Target path
+        target: String,
+    },
+    /// Login the linux
+    Login {
         /// Target path
         target: String,
     },
@@ -104,6 +112,90 @@ pub fn run() -> Result<()> {
             }
 
             fs::remove_dir_all(target)?;
+        }
+        Commands::Login { target } => {
+            let target = Path::new(target.as_str());
+            let proc = target.join("/proc");
+            let dev = target.join("/dev");
+
+            mount("sysfs", "sys", target.join("/sys"), 0)?;
+            mount("proc", "proc", target.join("/proc"), 0)?;
+            mount(
+                "tmpfs",
+                "tmpfs",
+                target.join("/tmp"),
+                libc::MS_NOSUID | libc::MS_NODEV,
+            )?;
+            mount("none", "/dev", target.join("dev"), libc::MS_BIND)?;
+
+            let dev_dirs = ["/dev/shm", "/dev/pts", "/dev/net"];
+            for dir in &dev_dirs {
+                if !Path::new(dir).exists() {
+                    fs::create_dir_all(dir)?;
+                }
+            }
+
+            mount(
+                "tmpfs",
+                "tmpfs",
+                Path::new("/dev/shm"),
+                libc::MS_NOSUID | libc::MS_NODEV,
+            )?;
+            mount("devpts", "devpts", Path::new("/dev/pts"), libc::MS_NOEXEC)?;
+            mount("none", "/dev/shm", target.join("/dev/shm"), libc::MS_BIND)?;
+            mount("none", "/dev/pts", target.join("/dev/pts"), libc::MS_BIND)?;
+
+            let links = [
+                ("/proc/self/fd", "/dev/fd"),
+                ("/proc/self/fd/0", "/dev/stdin"),
+                ("/proc/self/fd/1", "/dev/stdout"),
+                ("/proc/self/fd/2", "/dev/stderr"),
+            ];
+
+            for (src, dst) in &links {
+                if !Path::new(dst).exists() {
+                    symlink(src, dst)?;
+                }
+            }
+
+            if !Path::new("/dev/tty0").exists() {
+                symlink("/dev/null", "/dev/tty0")?;
+            }
+
+            let tun_path = Path::new("/dev/net/tun");
+            if tun_path.exists() {
+                return Ok(());
+            }
+
+            fs::create_dir_all(tun_path.parent().unwrap())?;
+
+            unsafe {
+                if libc::mknod(
+                    CString::new("/dev/net/tun")?.as_ptr(),
+                    libc::S_IFCHR | 0o666,
+                    libc::makedev(10, 200),
+                ) != 0
+                {
+                    return Err(std::io::Error::last_os_error().into());
+                }
+
+                if libc::chroot(CString::new(option_to_str(target.to_str()))?.as_ptr()) != 0 {
+                    return Err(std::io::Error::last_os_error().into());
+                }
+
+                if libc::execvp(
+                    CString::new("/bin/bash")?.as_ptr(),
+                    vec![
+                        CString::new("/bin/bash")?.as_ptr(),
+                        CString::new("-l")?.as_ptr(),
+                        ptr::null(),
+                    ]
+                    .as_ptr(),
+                ) != 0
+                {
+                    return Err(std::io::Error::last_os_error().into());
+                }
+            }
         }
     }
 
