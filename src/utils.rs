@@ -51,7 +51,7 @@ pub fn mount(fs_type: &str, source: &str, target: impl AsRef<Path>, flags: u64) 
 
     let fs_type_cstr = CString::new(fs_type)?;
     let source_cstr = CString::new(source)?;
-    let target_cstr = CString::new(target.to_str()?)?;
+    let target_cstr = CString::new(option_to_str(target.to_str()))?;
 
     unsafe {
         if libc::mount(
@@ -62,7 +62,7 @@ pub fn mount(fs_type: &str, source: &str, target: impl AsRef<Path>, flags: u64) 
             std::ptr::null(),
         ) != 0
         {
-            return Err(std::io::Error::last_os_error());
+            return Err(std::io::Error::last_os_error().into());
         }
     }
     Ok(())
