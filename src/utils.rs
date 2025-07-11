@@ -1,3 +1,7 @@
+use std::{ffi::CString, fs, path::Path};
+
+use anyhow::Result;
+
 pub fn option_to_str<T: Default>(option: Option<T>) -> T {
     option.unwrap_or_default()
 }
@@ -39,4 +43,27 @@ pub mod compress {
             Ok(())
         }
     }
+}
+
+pub fn mount(fs_type: &str, source: &str, target: impl AsRef<Path>, flags: u64) -> Result<()> {
+    let target = target.as_ref();
+    fs::create_dir_all(target)?;
+
+    let fs_type_cstr = CString::new(fs_type)?;
+    let source_cstr = CString::new(source)?;
+    let target_cstr = CString::new(target.to_str()?)?;
+
+    unsafe {
+        if libc::mount(
+            source_cstr.as_ptr(),
+            target_cstr.as_ptr(),
+            fs_type_cstr.as_ptr(),
+            flags as u64,
+            std::ptr::null(),
+        ) != 0
+        {
+            return Err(std::io::Error::last_os_error());
+        }
+    }
+    Ok(())
 }
