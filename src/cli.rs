@@ -140,9 +140,9 @@ pub fn run() -> Result<()> {
                 Path::new("/dev/shm"),
                 libc::MS_NOSUID | libc::MS_NODEV,
             )?;
-            mount("devpts", "devpts", Path::new("/dev/pts"), libc::MS_NOEXEC)?;
-            mount("none", "/dev/shm", target.join("/dev/shm"), libc::MS_BIND)?;
-            mount("none", "/dev/pts", target.join("/dev/pts"), libc::MS_BIND)?;
+            mount("devpts", "devpts", dev.join("/pts"), libc::MS_NOEXEC)?;
+            mount("none", "/dev/shm", dev.join("/shm"), libc::MS_BIND)?;
+            mount("none", "/dev/pts", dev.join("/pts"), libc::MS_BIND)?;
 
             let links = [
                 ("/proc/self/fd", "/dev/fd"),
@@ -161,7 +161,7 @@ pub fn run() -> Result<()> {
                 symlink("/dev/null", "/dev/tty0")?;
             }
 
-            let tun_path = Path::new("/dev/net/tun");
+            let tun_path = dev.join("/net/tun");
             if tun_path.exists() {
                 return Ok(());
             }
