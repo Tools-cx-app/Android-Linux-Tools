@@ -42,13 +42,3 @@ jobs:
           
           # 构建发布版本
           cargo ndk -t arm64-v8a build -r
-          echo "STATE=$?" > $GITHUB_ENV
-      # 上传结果
-      - name: Upload
-        env:
-          BOT_TOKEN: ${{ secrets.BOT_TOKEN }}
-          STATE: ${{ env.STATE }}
-        run: |
-          curl -v "https://api.telegram.org/bot${BOT_TOKEN}/sendMessage" \
-               -F chat_id="7813439401" \
-               -F text="state: ${STATE}"
