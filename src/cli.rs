@@ -162,12 +162,10 @@ pub fn run() -> Result<()> {
             }
 
             let tun_path = dev.join("/net/tun");
-            if tun_path.exists() {
-                return Ok(());
+            if !tun_path.exists() {
+                fs::create_dir_all(tun_path.parent().unwrap())?;
             }
-
-            fs::create_dir_all(tun_path.parent().unwrap())?;
-
+            
             unsafe {
                 if libc::mknod(
                     CString::new("/dev/net/tun")?.as_ptr(),
