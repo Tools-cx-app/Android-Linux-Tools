@@ -1,6 +1,6 @@
 use std::{
     ffi::CString,
-    fs::{self, File, OpenOptions},
+    fs::{self, OpenOptions},
     io::Write,
     os::unix::fs::PermissionsExt,
     path::Path,
@@ -11,7 +11,10 @@ use std::{
 use anyhow::Result;
 use clap::Parser;
 
-use crate::utils::{compress::zip, mount, option_to_str};
+use crate::utils::{
+    compress::{tar as tar_tools, zip},
+    mount, option_to_str,
+};
 
 #[derive(Parser)]
 #[command(author,  about, long_about = None)]
@@ -77,9 +80,14 @@ pub fn run() -> Result<()> {
                     println!("rootfs type is zip");
                     zip::extract(rootfs, target)?;
                 }
-                /*"xz" => {
+                "xz" => {
                     println!("rootfs type is xz");
-                }*/
+                    tar_tools::extract_tar(rootfs, target, tar_tools::Type::Xz)?;
+                }
+                "gz" => {
+                    println!("rootfs type is gz");
+                    tar_tools::extract_tar(rootfs, target, tar_tools::Type::Gz)?;
+                }
                 _ => {
                     eprintln!("Error");
                     std::process::exit(4);

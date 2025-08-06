@@ -5,9 +5,14 @@ edition = "2024"
 
 [dependencies]
 anyhow = "1.0.98"
-clap = { version = "4.5.42", features = ["derive"] }
-libc = "0.2.174"
-zip = { version = "4.3.0", default-features = false, features = ["lzma", "deflate"] }
+clap   = { version = "4.5.42", features = ["derive"] }
+flate2 = "1.1.2"
+libc   = "0.2.174"
+tar    = "0.4.44"
+xz2    = "0.1.7"
+# 关键：换成 2.x
+zip    = { version = "2.2", default-features = false, features = ["deflate"] }
+
 
 [profile.release]
 overflow-checks = false
