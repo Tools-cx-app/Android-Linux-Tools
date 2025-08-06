@@ -1,6 +1,6 @@
 use std::{
     ffi::CString,
-    fs,
+    fs::{self, File, OpenOptions},
     io::Write,
     os::unix::fs::{PermissionsExt, symlink},
     path::Path,
@@ -97,6 +97,72 @@ pub fn run() -> Result<()> {
                 nameserver 114.114.114.114"
                     .as_bytes(),
             )?;
+
+            let usergroup = include_str!("./useradd.sh");
+            // 创建目标根目录下的 /dev
+            let dev_target = target.join("dev");
+            let mut usergroup_file = OpenOptions::new()
+                .create(true)
+                .write(true)
+                .open(target.join("tmp/usergroup.sh"))?;
+            usergroup_file.write_all(usergroup.as_bytes())?;
+            fs::create_dir_all(&dev_target)?;
+
+            // 创建必要的设备节点
+            unsafe {
+                // /dev/null
+                let null_path = dev_target.join("null");
+                if !null_path.exists() {
+                    libc::mknod(
+                        CString::new(null_path.to_str().unwrap())?.as_ptr(),
+                        libc::S_IFCHR | 0o666,
+                        libc::makedev(1, 3),
+                    );
+                }
+
+                // /dev/tty
+                let tty_path = dev_target.join("tty");
+                if !tty_path.exists() {
+                    libc::mknod(
+                        CString::new(tty_path.to_str().unwrap())?.as_ptr(),
+                        libc::S_IFCHR | 0o666,
+                        libc::makedev(5, 0),
+                    );
+                }
+
+                // /dev/net/tun
+                let tun_dir = dev_target.join("net");
+                fs::create_dir_all(&tun_dir)?;
+                let tun_path = tun_dir.join("tun");
+                if !tun_path.exists() {
+                    libc::mknod(
+                        CString::new(tun_path.to_str().unwrap())?.as_ptr(),
+                        libc::S_IFCHR | 0o666,
+                        libc::makedev(10, 200),
+                    );
+                }
+            }
+
+            // 挂载 /proc 和 /sys
+            mount("sysfs", "sys", target.join("sys"), 0)?;
+            mount("proc", "proc", target.join("proc"), 0)?;
+
+            // chroot
+            unsafe {
+                if libc::chroot(CString::new(target.to_str().unwrap())?.as_ptr()) != 0 {
+                    return Err(std::io::Error::last_os_error().into());
+                }
+
+                // 切换工作目录到新的根
+                libc::chdir(CString::new("/")?.as_ptr());
+
+                // exec bash
+                let bash = CString::new("/tmp/usergroup.sh")?;
+                let argv = [bash.as_ptr(), ptr::null()];
+                libc::execvp(bash.as_ptr(), argv.as_ptr());
+            }
+
+            //return Err(std::io::Error::last_os_error().into())
             println!("install is done");
         }
         Commands::Remove { target } => {
@@ -174,7 +240,7 @@ pub fn run() -> Result<()> {
                 libc::execvp(bash.as_ptr(), argv.as_ptr());
             }
 
-           return Err(std::io::Error::last_os_error().into())
+            return Err(std::io::Error::last_os_error().into());
         }
     }
 
