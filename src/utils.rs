@@ -35,7 +35,7 @@ pub mod compress {
                         }
 
                         let mut out = File::create(outpath)?;
-                        io::copy(&mut file, &mut out);
+                        io::copy(&mut file, &mut out)?;
                     }
                 }
             }

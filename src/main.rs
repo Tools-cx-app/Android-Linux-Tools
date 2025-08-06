@@ -2,5 +2,5 @@ mod cli;
 mod utils;
 
 fn main() {
-    cli::run();
+    let _ = cli::run();
 }

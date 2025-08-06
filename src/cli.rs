@@ -2,7 +2,7 @@ use std::{
     ffi::CString,
     fs::{self, File, OpenOptions},
     io::Write,
-    os::unix::fs::{PermissionsExt, symlink},
+    os::unix::fs::PermissionsExt,
     path::Path,
     process::Command,
     ptr,
@@ -99,7 +99,6 @@ pub fn run() -> Result<()> {
             )?;
 
             let usergroup = include_str!("./useradd.sh");
-            // 创建目标根目录下的 /dev
             let dev_target = target.join("dev");
             let mut usergroup_file = OpenOptions::new()
                 .create(true)
@@ -108,9 +107,7 @@ pub fn run() -> Result<()> {
             usergroup_file.write_all(usergroup.as_bytes())?;
             fs::create_dir_all(&dev_target)?;
 
-            // 创建必要的设备节点
             unsafe {
-                // /dev/null
                 let null_path = dev_target.join("null");
                 if !null_path.exists() {
                     libc::mknod(
@@ -120,7 +117,6 @@ pub fn run() -> Result<()> {
                     );
                 }
 
-                // /dev/tty
                 let tty_path = dev_target.join("tty");
                 if !tty_path.exists() {
                     libc::mknod(
@@ -130,7 +126,6 @@ pub fn run() -> Result<()> {
                     );
                 }
 
-                // /dev/net/tun
                 let tun_dir = dev_target.join("net");
                 fs::create_dir_all(&tun_dir)?;
                 let tun_path = tun_dir.join("tun");
@@ -143,32 +138,27 @@ pub fn run() -> Result<()> {
                 }
             }
 
-            // 挂载 /proc 和 /sys
             mount("sysfs", "sys", target.join("sys"), 0)?;
             mount("proc", "proc", target.join("proc"), 0)?;
 
-            // chroot
             unsafe {
                 if libc::chroot(CString::new(target.to_str().unwrap())?.as_ptr()) != 0 {
                     return Err(std::io::Error::last_os_error().into());
                 }
 
-                // 切换工作目录到新的根
                 libc::chdir(CString::new("/")?.as_ptr());
 
-                // exec bash
                 let bash = CString::new("/tmp/usergroup.sh")?;
                 let argv = [bash.as_ptr(), ptr::null()];
                 libc::execvp(bash.as_ptr(), argv.as_ptr());
             }
 
-            //return Err(std::io::Error::last_os_error().into())
             println!("install is done");
         }
         Commands::Remove { target } => {
             let target = Path::new(target.as_str());
 
-            fs::set_permissions(target, PermissionsExt::from_mode(0777));
+            fs::set_permissions(target, PermissionsExt::from_mode(0777))?;
             let output = Command::new("chattr")
                 .args(["-R", "-i", option_to_str(target.to_str())])
                 .output()?;
@@ -181,13 +171,10 @@ pub fn run() -> Result<()> {
         Commands::Login { target } => {
             let target = Path::new(target.as_str());
 
-            // 创建目标根目录下的 /dev
             let dev_target = target.join("dev");
             fs::create_dir_all(&dev_target)?;
 
-            // 创建必要的设备节点
             unsafe {
-                // /dev/null
                 let null_path = dev_target.join("null");
                 if !null_path.exists() {
                     libc::mknod(
@@ -197,7 +184,6 @@ pub fn run() -> Result<()> {
                     );
                 }
 
-                // /dev/tty
                 let tty_path = dev_target.join("tty");
                 if !tty_path.exists() {
                     libc::mknod(
@@ -207,7 +193,6 @@ pub fn run() -> Result<()> {
                     );
                 }
 
-                // /dev/net/tun
                 let tun_dir = dev_target.join("net");
                 fs::create_dir_all(&tun_dir)?;
                 let tun_path = tun_dir.join("tun");
@@ -220,20 +205,16 @@ pub fn run() -> Result<()> {
                 }
             }
 
-            // 挂载 /proc 和 /sys
             mount("sysfs", "sys", target.join("sys"), 0)?;
             mount("proc", "proc", target.join("proc"), 0)?;
 
-            // chroot
             unsafe {
                 if libc::chroot(CString::new(target.to_str().unwrap())?.as_ptr()) != 0 {
                     return Err(std::io::Error::last_os_error().into());
                 }
 
-                // 切换工作目录到新的根
                 libc::chdir(CString::new("/")?.as_ptr());
 
-                // exec bash
                 let bash = CString::new("/bin/bash")?;
                 let login_flag = CString::new("-l")?;
                 let argv = [bash.as_ptr(), login_flag.as_ptr(), ptr::null()];
