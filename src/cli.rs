@@ -114,85 +114,67 @@ pub fn run() -> Result<()> {
         }
         Commands::Login { target } => {
             let target = Path::new(target.as_str());
-            let proc = target.join("/proc");
-            let dev = target.join("/dev");
 
-            mount("sysfs", "sys", target.join("/sys"), 0)?;
-            mount("proc", "proc", target.join("/proc"), 0)?;
-            mount(
-                "tmpfs",
-                "tmpfs",
-                target.join("/tmp"),
-                libc::MS_NOSUID | libc::MS_NODEV,
-            )?;
-            mount("none", "/dev", target.join("dev"), libc::MS_BIND)?;
+            // 创建目标根目录下的 /dev
+            let dev_target = target.join("dev");
+            fs::create_dir_all(&dev_target)?;
 
-            let dev_dirs = ["/dev/shm", "/dev/pts", "/dev/net"];
-            for dir in &dev_dirs {
-                if !Path::new(dir).exists() {
-                    fs::create_dir_all(dir)?;
-                }
-            }
-
-            mount(
-                "tmpfs",
-                "tmpfs",
-                Path::new("/dev/shm"),
-                libc::MS_NOSUID | libc::MS_NODEV,
-            )?;
-            mount("devpts", "devpts", dev.join("/pts"), libc::MS_NOEXEC)?;
-            mount("none", "/dev/shm", dev.join("/shm"), libc::MS_BIND)?;
-            mount("none", "/dev/pts", dev.join("/pts"), libc::MS_BIND)?;
-
-            let links = [
-                ("/proc/self/fd", "/dev/fd"),
-                ("/proc/self/fd/0", "/dev/stdin"),
-                ("/proc/self/fd/1", "/dev/stdout"),
-                ("/proc/self/fd/2", "/dev/stderr"),
-            ];
-
-            for (src, dst) in &links {
-                if !Path::new(dst).exists() {
-                    symlink(src, dst)?;
-                }
-            }
-
-            if !Path::new("/dev/tty0").exists() {
-                symlink("/dev/null", "/dev/tty0")?;
-            }
-
-            let tun_path = dev.join("/net/tun");
-            if !tun_path.exists() {
-                fs::create_dir_all(tun_path.parent().unwrap())?;
-            }
-            
+            // 创建必要的设备节点
             unsafe {
-                if libc::mknod(
-                    CString::new("/dev/net/tun")?.as_ptr(),
-                    libc::S_IFCHR | 0o666,
-                    libc::makedev(10, 200),
-                ) != 0
-                {
-                    return Err(std::io::Error::last_os_error().into());
+                // /dev/null
+                let null_path = dev_target.join("null");
+                if !null_path.exists() {
+                    libc::mknod(
+                        CString::new(null_path.to_str().unwrap())?.as_ptr(),
+                        libc::S_IFCHR | 0o666,
+                        libc::makedev(1, 3),
+                    );
                 }
 
-                if libc::chroot(CString::new(option_to_str(target.to_str()))?.as_ptr()) != 0 {
-                    return Err(std::io::Error::last_os_error().into());
+                // /dev/tty
+                let tty_path = dev_target.join("tty");
+                if !tty_path.exists() {
+                    libc::mknod(
+                        CString::new(tty_path.to_str().unwrap())?.as_ptr(),
+                        libc::S_IFCHR | 0o666,
+                        libc::makedev(5, 0),
+                    );
                 }
 
-                if libc::execvp(
-                    CString::new("/bin/bash")?.as_ptr(),
-                    vec![
-                        CString::new("/bin/bash")?.as_ptr(),
-                        CString::new("-l")?.as_ptr(),
-                        ptr::null(),
-                    ]
-                    .as_ptr(),
-                ) != 0
-                {
-                    return Err(std::io::Error::last_os_error().into());
+                // /dev/net/tun
+                let tun_dir = dev_target.join("net");
+                fs::create_dir_all(&tun_dir)?;
+                let tun_path = tun_dir.join("tun");
+                if !tun_path.exists() {
+                    libc::mknod(
+                        CString::new(tun_path.to_str().unwrap())?.as_ptr(),
+                        libc::S_IFCHR | 0o666,
+                        libc::makedev(10, 200),
+                    );
                 }
             }
+
+            // 挂载 /proc 和 /sys
+            mount("sysfs", "sys", target.join("sys"), 0)?;
+            mount("proc", "proc", target.join("proc"), 0)?;
+
+            // chroot
+            unsafe {
+                if libc::chroot(CString::new(target.to_str().unwrap())?.as_ptr()) != 0 {
+                    return Err(std::io::Error::last_os_error().into());
+                }
+
+                // 切换工作目录到新的根
+                libc::chdir(CString::new("/")?.as_ptr());
+
+                // exec bash
+                let bash = CString::new("/bin/bash")?;
+                let login_flag = CString::new("-l")?;
+                let argv = [bash.as_ptr(), login_flag.as_ptr(), ptr::null()];
+                libc::execvp(bash.as_ptr(), argv.as_ptr());
+            }
+
+           return Err(std::io::Error::last_os_error().into())
         }
     }
 
