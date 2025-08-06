@@ -12,8 +12,9 @@ use anyhow::Result;
 use clap::Parser;
 
 use crate::utils::{
+    chroot::{mount, set_envs},
     compress::{tar as tar_tools, zip},
-    mount, option_to_str,
+    option_to_str,
 };
 
 #[derive(Parser)]
@@ -156,6 +157,16 @@ pub fn run() -> Result<()> {
 
                 libc::chdir(CString::new("/")?.as_ptr());
 
+                let envs = [
+                    ("PATH", "/usr/local/bin:/usr/bin:/bin"),
+                    ("TERM", "xterm-256color"),
+                    ("HOME", "/root"),
+                    ("USER", "root"),
+                    ("SHELL", "/bin/bash"),
+                    ("LANG", "C.UTF-8"),
+                ];
+                set_envs(&envs)?;
+
                 let bash = CString::new("/tmp/usergroup.sh")?;
                 let argv = [bash.as_ptr(), ptr::null()];
                 libc::execvp(bash.as_ptr(), argv.as_ptr());
@@ -222,6 +233,16 @@ pub fn run() -> Result<()> {
                 }
 
                 libc::chdir(CString::new("/")?.as_ptr());
+
+                let envs = [
+                    ("PATH", "/usr/local/bin:/usr/bin:/bin"),
+                    ("TERM", "xterm-256color"),
+                    ("HOME", "/root"),
+                    ("USER", "root"),
+                    ("SHELL", "/bin/bash"),
+                    ("LANG", "C.UTF-8"),
+                ];
+                set_envs(&envs)?;
 
                 let bash = CString::new("/bin/bash")?;
                 let login_flag = CString::new("-l")?;
