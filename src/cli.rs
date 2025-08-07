@@ -12,7 +12,7 @@ use anyhow::Result;
 use clap::Parser;
 
 use crate::utils::{
-    chroot::{mount, set_envs},
+    chroot::{mount, set_envs, unmount},
     compress::{tar as tar_tools, zip},
     option_to_str,
 };
@@ -40,6 +40,11 @@ enum Commands {
     },
     /// Login the linux
     Login {
+        /// Target path
+        target: String,
+    },
+    /// Unmount the linux
+    Unmount {
         /// Target path
         target: String,
     },
@@ -177,6 +182,7 @@ pub fn run() -> Result<()> {
         Commands::Remove { target } => {
             let target = Path::new(target.as_str());
 
+            unmount(target);
             fs::set_permissions(target, PermissionsExt::from_mode(0777))?;
             let output = Command::new("chattr")
                 .args(["-R", "-i", option_to_str(target.to_str())])
@@ -186,6 +192,10 @@ pub fn run() -> Result<()> {
             }
 
             fs::remove_dir_all(target)?;
+        }
+        Commands::Unmount { target } => {
+            let target = Path::new(target.as_str());
+            unmount(target)?;
         }
         Commands::Login { target } => {
             let target = Path::new(target.as_str());

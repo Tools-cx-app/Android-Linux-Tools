@@ -97,6 +97,20 @@ pub mod chroot {
         Ok(())
     }
 
+    pub fn unmount(target: impl AsRef<Path>) -> Result<()> {
+        let target = target.as_ref();
+        fs::create_dir_all(target)?;
+
+        let target_cstr = CString::new(option_to_str(target.to_str()))?;
+
+        unsafe {
+            if libc::umount(target_cstr.as_ptr()) != 0 {
+                return Err(std::io::Error::last_os_error().into());
+            }
+        }
+        Ok(())
+    }
+
     pub unsafe fn set_envs(vars: &[(&str, &str)]) -> Result<()> {
         for &(k, v) in vars {
             let key = CString::new(k)?;
