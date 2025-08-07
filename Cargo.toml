@@ -11,7 +11,7 @@ libc   = "0.2.174"
 tar    = "0.4.44"
 xz2    = "0.1.7"
 # 关键：换成 2.x
-zip    = { version = "2.2", default-features = false, features = ["deflate"] }
+zip    = { version = "4.3", default-features = false, features = ["deflate"] }
 
 
 [profile.release]
