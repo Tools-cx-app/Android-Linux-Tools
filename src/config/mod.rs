@@ -48,6 +48,8 @@ impl Config {
 
         let config = toml::to_string(&config)?;
         fs::write(config_path, config)?;
+        
+        Ok(())
     }
 
     pub fn read_config(target: impl AsRef<Path>) -> Result<Self> {
