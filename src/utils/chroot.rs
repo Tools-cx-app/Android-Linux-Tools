@@ -41,8 +41,8 @@ pub fn unmount(target: impl AsRef<Path>) -> Result<()> {
     Ok(())
 }
 
-pub unsafe fn set_envs(vars: &[(&str, &str)]) -> Result<()> {
-    for &(k, v) in vars {
+pub unsafe fn set_envs(vars: Vec<(String, String)>) -> Result<()> {
+    for (k, v) in vars {
         let key = CString::new(k)?;
         let val = CString::new(v)?;
         if unsafe { libc::setenv(key.as_ptr(), val.as_ptr(), 1) } != 0 {
@@ -55,7 +55,7 @@ pub unsafe fn set_envs(vars: &[(&str, &str)]) -> Result<()> {
 pub fn start(
     target: impl AsRef<Path>,
     home: impl AsRef<Path>,
-    envs: &[(&str, &str)],
+    envs: Vec<(String, String)>,
     bash: &str,
     args: &str,
 ) -> Result<()> {
@@ -106,7 +106,7 @@ pub fn start(
 
         libc::chdir(CString::new(&*home)?.as_ptr());
 
-        set_envs(&envs)?;
+        set_envs(envs)?;
 
         let bash = CString::new(bash)?;
         let argv = [args.as_ptr(), std::ptr::null()];

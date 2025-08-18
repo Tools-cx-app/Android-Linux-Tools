@@ -9,10 +9,13 @@ use std::{
 use anyhow::Result;
 use clap::Parser;
 
-use crate::utils::{
-    chroot::{self, unmount},
-    compress::{tar as tar_tools, zip},
-    option_to_str,
+use crate::{
+    config::Config,
+    utils::{
+        chroot::{self, unmount},
+        compress::{tar as tar_tools, zip},
+        option_to_str,
+    },
 };
 
 #[derive(Parser)]
@@ -99,6 +102,7 @@ pub fn run() -> Result<()> {
             }
 
             fs::remove_file(target.join("/etc/resolv.conf"))?;
+            Config::init(target)?;
             let mut resolv = fs::OpenOptions::new()
                 .read(true)
                 .write(true)
@@ -116,21 +120,9 @@ pub fn run() -> Result<()> {
                 .write(true)
                 .open(target.join("tmp/usergroup.sh"))?;
             usergroup_file.write_all(usergroup.as_bytes())?;
+            let envs = Config::read_config(target)?;
 
-            chroot::start(
-                target,
-                "/root",
-                &[
-                    ("PATH", "/usr/local/bin:/usr/bin:/bin"),
-                    ("TERM", "xterm-256color"),
-                    ("HOME", "/root"),
-                    ("USER", "root"),
-                    ("SHELL", "/bin/bash"),
-                    ("LANG", "C.UTF-8"),
-                ],
-                "/bin/bash",
-                "/tmp/usergroup.sh",
-            )?;
+            chroot::start(target, "/root", envs.envs, "/bin/bash", "/tmp/usergroup.sh")?;
             println!("install is done");
         }
         Commands::Remove { target } => {
@@ -154,21 +146,16 @@ pub fn run() -> Result<()> {
         Commands::Login { target } => {
             let target = Path::new(target.as_str());
             let home = Path::new("/root");
+            Config::init(target)?;
 
-            chroot::start(
-                target,
-                home,
-                &[
-                    ("PATH", "/usr/local/bin:/usr/bin:/bin"),
-                    ("TERM", "xterm-256color"),
-                    ("HOME", "/root"),
-                    ("USER", "root"),
-                    ("SHELL", "/bin/bash"),
-                    ("LANG", "C.UTF-8"),
-                ],
-                "/bin/bash",
-                "-l",
-            )?;
+            let config = Config::read_config(target)?;
+            let mut envs = vec![
+                ("USER".to_string(), config.user),
+                ("HOME".to_string(), config.home),
+            ];
+            envs.extend(config.envs);
+
+            chroot::start(target, home, envs, &config.shell.main, &config.shell.args)?;
 
             return Err(std::io::Error::last_os_error().into());
         }
