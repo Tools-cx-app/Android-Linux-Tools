@@ -121,4 +121,66 @@ pub mod chroot {
         }
         Ok(())
     }
+
+    pub fn start(
+        target: impl AsRef<Path>,
+        envs: &[(&str, &str)],
+        bash: &str,
+        args: &str,
+    ) -> Result<()> {
+        let target = target.as_ref();
+        let dev_target = target.join("dev");
+
+        fs::create_dir_all(&dev_target)?;
+
+        unsafe {
+            let null_path = dev_target.join("null");
+            if !null_path.exists() {
+                libc::mknod(
+                    CString::new(null_path.to_str().unwrap())?.as_ptr(),
+                    libc::S_IFCHR | 0o666,
+                    libc::makedev(1, 3),
+                );
+            }
+
+            let tty_path = dev_target.join("tty");
+            if !tty_path.exists() {
+                libc::mknod(
+                    CString::new(tty_path.to_str().unwrap())?.as_ptr(),
+                    libc::S_IFCHR | 0o666,
+                    libc::makedev(5, 0),
+                );
+            }
+
+            let tun_dir = dev_target.join("net");
+            fs::create_dir_all(&tun_dir)?;
+            let tun_path = tun_dir.join("tun");
+            if !tun_path.exists() {
+                libc::mknod(
+                    CString::new(tun_path.to_str().unwrap())?.as_ptr(),
+                    libc::S_IFCHR | 0o666,
+                    libc::makedev(10, 200),
+                );
+            }
+        }
+
+        mount("sysfs", "sys", target.join("sys"), 0)?;
+        mount("proc", "proc", target.join("proc"), 0)?;
+
+        unsafe {
+            if libc::chroot(CString::new(target.to_str().unwrap())?.as_ptr()) != 0 {
+                return Err(std::io::Error::last_os_error().into());
+            }
+
+            libc::chdir(CString::new("/")?.as_ptr());
+
+            set_envs(&envs)?;
+
+            let bash = CString::new(bash)?;
+            let argv = [args.as_ptr(), std::ptr::null()];
+            libc::execvp(bash.as_ptr(), argv.as_ptr());
+        }
+
+        Ok(())
+    }
 }

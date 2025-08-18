@@ -1,18 +1,16 @@
 use std::{
-    ffi::CString,
     fs::{self, OpenOptions},
     io::Write,
     os::unix::fs::PermissionsExt,
     path::Path,
     process::Command,
-    ptr,
 };
 
 use anyhow::Result;
 use clap::Parser;
 
 use crate::utils::{
-    chroot::{mount, set_envs, unmount},
+    chroot::{self, unmount},
     compress::{tar as tar_tools, zip},
     option_to_str,
 };
@@ -113,76 +111,31 @@ pub fn run() -> Result<()> {
             )?;
 
             let usergroup = include_str!("./useradd.sh");
-            let dev_target = target.join("dev");
             let mut usergroup_file = OpenOptions::new()
                 .create(true)
                 .write(true)
                 .open(target.join("tmp/usergroup.sh"))?;
             usergroup_file.write_all(usergroup.as_bytes())?;
-            fs::create_dir_all(&dev_target)?;
 
-            unsafe {
-                let null_path = dev_target.join("null");
-                if !null_path.exists() {
-                    libc::mknod(
-                        CString::new(null_path.to_str().unwrap())?.as_ptr(),
-                        libc::S_IFCHR | 0o666,
-                        libc::makedev(1, 3),
-                    );
-                }
-
-                let tty_path = dev_target.join("tty");
-                if !tty_path.exists() {
-                    libc::mknod(
-                        CString::new(tty_path.to_str().unwrap())?.as_ptr(),
-                        libc::S_IFCHR | 0o666,
-                        libc::makedev(5, 0),
-                    );
-                }
-
-                let tun_dir = dev_target.join("net");
-                fs::create_dir_all(&tun_dir)?;
-                let tun_path = tun_dir.join("tun");
-                if !tun_path.exists() {
-                    libc::mknod(
-                        CString::new(tun_path.to_str().unwrap())?.as_ptr(),
-                        libc::S_IFCHR | 0o666,
-                        libc::makedev(10, 200),
-                    );
-                }
-            }
-
-            mount("sysfs", "sys", target.join("sys"), 0)?;
-            mount("proc", "proc", target.join("proc"), 0)?;
-
-            unsafe {
-                if libc::chroot(CString::new(target.to_str().unwrap())?.as_ptr()) != 0 {
-                    return Err(std::io::Error::last_os_error().into());
-                }
-
-                libc::chdir(CString::new("/")?.as_ptr());
-
-                let envs = [
+            chroot::start(
+                target,
+                &[
                     ("PATH", "/usr/local/bin:/usr/bin:/bin"),
                     ("TERM", "xterm-256color"),
                     ("HOME", "/root"),
                     ("USER", "root"),
                     ("SHELL", "/bin/bash"),
                     ("LANG", "C.UTF-8"),
-                ];
-                set_envs(&envs)?;
-
-                let bash = CString::new("/tmp/usergroup.sh")?;
-                let argv = [bash.as_ptr(), ptr::null()];
-                libc::execvp(bash.as_ptr(), argv.as_ptr());
-            }
-
+                ],
+                "/bin/bash",
+                "/tmp/usergroup.sh",
+            )?;
             println!("install is done");
         }
         Commands::Remove { target } => {
             let target = Path::new(target.as_str());
 
-            unmount(target);
+            unmount(target)?;
             fs::set_permissions(target, PermissionsExt::from_mode(0777))?;
             let output = Command::new("chattr")
                 .args(["-R", "-i", option_to_str(target.to_str())])
@@ -200,65 +153,19 @@ pub fn run() -> Result<()> {
         Commands::Login { target } => {
             let target = Path::new(target.as_str());
 
-            let dev_target = target.join("dev");
-            fs::create_dir_all(&dev_target)?;
-
-            unsafe {
-                let null_path = dev_target.join("null");
-                if !null_path.exists() {
-                    libc::mknod(
-                        CString::new(null_path.to_str().unwrap())?.as_ptr(),
-                        libc::S_IFCHR | 0o666,
-                        libc::makedev(1, 3),
-                    );
-                }
-
-                let tty_path = dev_target.join("tty");
-                if !tty_path.exists() {
-                    libc::mknod(
-                        CString::new(tty_path.to_str().unwrap())?.as_ptr(),
-                        libc::S_IFCHR | 0o666,
-                        libc::makedev(5, 0),
-                    );
-                }
-
-                let tun_dir = dev_target.join("net");
-                fs::create_dir_all(&tun_dir)?;
-                let tun_path = tun_dir.join("tun");
-                if !tun_path.exists() {
-                    libc::mknod(
-                        CString::new(tun_path.to_str().unwrap())?.as_ptr(),
-                        libc::S_IFCHR | 0o666,
-                        libc::makedev(10, 200),
-                    );
-                }
-            }
-
-            mount("sysfs", "sys", target.join("sys"), 0)?;
-            mount("proc", "proc", target.join("proc"), 0)?;
-
-            unsafe {
-                if libc::chroot(CString::new(target.to_str().unwrap())?.as_ptr()) != 0 {
-                    return Err(std::io::Error::last_os_error().into());
-                }
-
-                libc::chdir(CString::new("/")?.as_ptr());
-
-                let envs = [
+            chroot::start(
+                target,
+                &[
                     ("PATH", "/usr/local/bin:/usr/bin:/bin"),
                     ("TERM", "xterm-256color"),
                     ("HOME", "/root"),
                     ("USER", "root"),
                     ("SHELL", "/bin/bash"),
                     ("LANG", "C.UTF-8"),
-                ];
-                set_envs(&envs)?;
-
-                let bash = CString::new("/bin/bash")?;
-                let login_flag = CString::new("-l")?;
-                let argv = [bash.as_ptr(), login_flag.as_ptr(), ptr::null()];
-                libc::execvp(bash.as_ptr(), argv.as_ptr());
-            }
+                ],
+                "/bin/bash",
+                "-l",
+            )?;
 
             return Err(std::io::Error::last_os_error().into());
         }
