@@ -124,11 +124,13 @@ pub mod chroot {
 
     pub fn start(
         target: impl AsRef<Path>,
+        home: impl AsRef<Path>,
         envs: &[(&str, &str)],
         bash: &str,
         args: &str,
     ) -> Result<()> {
         let target = target.as_ref();
+        let home = home.as_ref().to_string_lossy();
         let dev_target = target.join("dev");
 
         fs::create_dir_all(&dev_target)?;
@@ -172,7 +174,7 @@ pub mod chroot {
                 return Err(std::io::Error::last_os_error().into());
             }
 
-            libc::chdir(CString::new("/")?.as_ptr());
+            libc::chdir(CString::new(&*home)?.as_ptr());
 
             set_envs(&envs)?;
 

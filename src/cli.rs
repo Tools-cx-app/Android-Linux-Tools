@@ -119,6 +119,7 @@ pub fn run() -> Result<()> {
 
             chroot::start(
                 target,
+                "/root",
                 &[
                     ("PATH", "/usr/local/bin:/usr/bin:/bin"),
                     ("TERM", "xterm-256color"),
@@ -152,9 +153,11 @@ pub fn run() -> Result<()> {
         }
         Commands::Login { target } => {
             let target = Path::new(target.as_str());
+            let home = Path::new("/root");
 
             chroot::start(
                 target,
+                home,
                 &[
                     ("PATH", "/usr/local/bin:/usr/bin:/bin"),
                     ("TERM", "xterm-256color"),
