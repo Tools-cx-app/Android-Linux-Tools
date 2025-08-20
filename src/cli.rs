@@ -148,6 +148,7 @@ pub fn run() -> Result<()> {
         Commands::Login { target } => {
             let target = Path::new(target.as_str());
             let home = Path::new("/root");
+            let ksu_susfs = Path::new("/data/adb/ksu/bin/ksu_susfs");
 
             let config = Config::read_config(target)?;
             let mut envs = vec![
@@ -155,6 +156,13 @@ pub fn run() -> Result<()> {
                 ("HOME".to_string(), config.home),
             ];
             envs.extend(config.envs);
+
+            if ksu_susfs.exists() {
+                Command::new(ksu_susfs)
+                    .arg("hide_sus_mnts_for_all_procs")
+                    .arg("0")
+                    .output()?;
+            }
 
             chroot::start(target, home, envs, &config.shell.main, &config.shell.args)?;
 
