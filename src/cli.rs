@@ -19,7 +19,12 @@ use crate::{
 };
 
 #[derive(Parser)]
-#[command(author,  about, long_about = None)]
+#[command(
+    name = "alt",
+    about = "Android chroot manager",
+    version,
+    propagate_version = true,
+)]
 struct Cli {
     #[command(subcommand)]
     command: Commands,
@@ -27,26 +32,30 @@ struct Cli {
 
 #[derive(clap::Subcommand)]
 enum Commands {
-    /// Install the linux
+    /// Install a rootfs into the specified target directory
     Install {
-        /// Path of rootfs.
+        /// Rootfs archive to install (tar, tar.gz, tar.xz, etc.)
         rootfs: String,
-        /// Target path
+
+        /// Directory where the rootfs will be unpacked
         target: String,
     },
-    /// Remove the linux
+
+    /// Remove the chroot directory
     Remove {
-        /// Target path
+        /// Directory to delete
         target: String,
     },
-    /// Login the linux
+
+    /// Open an interactive shell inside the running chroot
     Login {
-        /// Target path
+        /// Path to the chroot directory
         target: String,
     },
-    /// Unmount the linux
+
+    /// Unmount all bind-mounts under the chroot directory
     Unmount {
-        /// Target path
+        /// Path to the chroot directory
         target: String,
     },
 }
