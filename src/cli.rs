@@ -23,7 +23,7 @@ use crate::{
     name = "alt",
     about = "Android chroot manager",
     version,
-    propagate_version = true,
+    propagate_version = true
 )]
 struct Cli {
     #[command(subcommand)]

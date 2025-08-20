@@ -27,6 +27,27 @@ pub fn mount(fs_type: &str, source: &str, target: impl AsRef<Path>, flags: u64) 
     Ok(())
 }
 
+pub fn mount_bind(source: impl AsRef<Path>, target: impl AsRef<Path>) -> Result<()> {
+    let target = target.as_ref();
+    let source = source.as_ref();
+    let source_cstr = CString::new(source.to_str().unwrap_or_default())?;
+    let target_cstr = CString::new(target.to_str().unwrap_or_default())?;
+
+    unsafe {
+        if libc::mount(
+            source_cstr.as_ptr(),
+            target_cstr.as_ptr(),
+            std::ptr::null(),
+            libc::MS_BIND,
+            std::ptr::null(),
+        ) != 0
+        {
+            return Err(std::io::Error::last_os_error().into());
+        }
+    }
+    Ok(())
+}
+
 pub fn unmount(target: impl AsRef<Path>) -> Result<()> {
     let target = target.as_ref();
     fs::create_dir_all(target)?;
@@ -98,6 +119,7 @@ pub fn start(
 
     let _ = mount("sysfs", "sys", target.join("sys"), 0);
     let _ = mount("proc", "proc", target.join("proc"), 0);
+    let _ = mount_bind("/dev/", target.join("dev"));
 
     unsafe {
         if libc::chroot(CString::new(target.to_str().unwrap())?.as_ptr()) != 0 {
