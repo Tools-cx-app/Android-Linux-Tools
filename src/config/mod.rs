@@ -1,9 +1,7 @@
-use std::{collections::HashMap, fs, path::Path};
+use std::{fs, path::Path};
 
 use anyhow::Result;
 use serde::{Deserialize, Serialize};
-
-use crate::config;
 
 #[derive(Deserialize, Serialize, Debug)]
 pub struct Config {
@@ -48,7 +46,7 @@ impl Config {
 
         let config = toml::to_string(&config)?;
         fs::write(config_path, config)?;
-        
+
         Ok(())
     }
 
