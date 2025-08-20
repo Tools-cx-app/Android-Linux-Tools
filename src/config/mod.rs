@@ -29,6 +29,7 @@ impl Config {
             ("TERM".to_string(), "xterm-256color".to_string()),
             ("SHELL".to_string(), "/bin/bash".to_string()),
             ("LANG".to_string(), "C.UTF-8".to_string()),
+            ("TMPDIR".to_string(), "/tmp".to_string())
         ];
         let config = Self {
             user: "root".to_string(),
