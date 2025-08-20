@@ -128,7 +128,8 @@ pub fn run() -> Result<()> {
         Commands::Remove { target } => {
             let target = Path::new(target.as_str());
 
-            unmount(target)?;
+            unmount(target.join("proc"))?;
+            unmount(target.join("sys"))?;
             fs::set_permissions(target, PermissionsExt::from_mode(0777))?;
             let output = Command::new("chattr")
                 .args(["-R", "-i", option_to_str(target.to_str())])
@@ -141,12 +142,12 @@ pub fn run() -> Result<()> {
         }
         Commands::Unmount { target } => {
             let target = Path::new(target.as_str());
-            unmount(target)?;
+            unmount(target.join("proc"))?;
+            unmount(target.join("sys"))?;
         }
         Commands::Login { target } => {
             let target = Path::new(target.as_str());
             let home = Path::new("/root");
-            Config::init(target)?;
 
             let config = Config::read_config(target)?;
             let mut envs = vec![

@@ -96,8 +96,8 @@ pub fn start(
         }
     }
 
-    mount("sysfs", "sys", target.join("sys"), 0)?;
-    mount("proc", "proc", target.join("proc"), 0)?;
+    let _ = mount("sysfs", "sys", target.join("sys"), 0);
+    let _ = mount("proc", "proc", target.join("proc"), 0);
 
     unsafe {
         if libc::chroot(CString::new(target.to_str().unwrap())?.as_ptr()) != 0 {
