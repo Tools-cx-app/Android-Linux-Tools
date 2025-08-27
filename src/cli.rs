@@ -60,7 +60,7 @@ enum Commands {
     },
 
     /// Bakup the choot directory
-    bakup {
+    Bakup {
         /// Path to the chroot directory
         target: String,
         /// Path to the output file
