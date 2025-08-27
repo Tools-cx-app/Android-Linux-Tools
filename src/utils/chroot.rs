@@ -86,6 +86,10 @@ pub fn start(
 
     fs::create_dir_all(&dev_target)?;
 
+    let _ = mount("sysfs", "sys", target.join("sys"), 0);
+    let _ = mount("proc", "proc", target.join("proc"), 0);
+    let _ = mount_bind("/dev/", target.join("dev"));
+    
     unsafe {
         let null_path = dev_target.join("null");
         if !null_path.exists() {
@@ -116,10 +120,6 @@ pub fn start(
             );
         }
     }
-
-    let _ = mount("sysfs", "sys", target.join("sys"), 0);
-    let _ = mount("proc", "proc", target.join("proc"), 0);
-    let _ = mount_bind("/dev/", target.join("dev"));
 
     unsafe {
         if libc::chroot(CString::new(target.to_str().unwrap())?.as_ptr()) != 0 {
