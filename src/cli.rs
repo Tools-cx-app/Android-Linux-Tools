@@ -185,7 +185,7 @@ pub fn run() -> Result<()> {
 
             return Err(std::io::Error::last_os_error().into());
         }
-        Commands::bakup { target, output } => {
+        Commands::Bakup { target, output } => {
             let target = Path::new(target.as_str());
             let output = Path::new(output.as_str());
 
