@@ -28,6 +28,9 @@ use crate::{
 struct Cli {
     #[command(subcommand)]
     command: Commands,
+
+    /// Login is unshare mode
+    unshare: bool,
 }
 
 #[derive(clap::Subcommand)]
@@ -181,7 +184,14 @@ pub fn run() -> Result<()> {
                     .output()?;
             }
 
-            chroot::start(target, home, envs, &config.shell.main, &config.shell.args)?;
+            chroot::start(
+                target,
+                home,
+                envs,
+                &config.shell.main,
+                &config.shell.args,
+                args.unshare,
+            )?;
 
             return Err(std::io::Error::last_os_error().into());
         }

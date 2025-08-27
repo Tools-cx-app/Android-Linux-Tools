@@ -1,4 +1,4 @@
-use std::{ffi::CString, fs, path::Path};
+use std::{ffi::CString, fs, path::Path, ptr};
 
 use anyhow::Result;
 
@@ -79,6 +79,7 @@ pub fn start(
     envs: Vec<(String, String)>,
     bash: &str,
     args: &str,
+    unshare: bool,
 ) -> Result<()> {
     let target = target.as_ref();
     let home = home.as_ref().to_string_lossy();
@@ -86,10 +87,34 @@ pub fn start(
 
     fs::create_dir_all(&dev_target)?;
 
+    if unshare {
+        unsafe {
+            if libc::unshare(libc::CLONE_NEWNS) != 0 {
+                return Err(std::io::Error::last_os_error().into());
+            }
+
+            let root = CString::new("/")?;
+            if libc::mount(
+                ptr::null(),
+                root.as_ptr(),
+                ptr::null(),
+                libc::MS_SLAVE | libc::MS_REC,
+                ptr::null(),
+            ) != 0
+            {
+                return Err(std::io::Error::last_os_error().into());
+            }
+
+            let flags = libc::CLONE_NEWPID | libc::CLONE_NEWUTS | libc::CLONE_NEWIPC;
+            if libc::unshare(flags) != 0 {
+                return Err(std::io::Error::last_os_error().into());
+            }
+        }
+    }
     let _ = mount("sysfs", "sys", target.join("sys"), 0);
     let _ = mount("proc", "proc", target.join("proc"), 0);
     let _ = mount_bind("/dev/", target.join("dev"));
-    
+
     unsafe {
         let null_path = dev_target.join("null");
         if !null_path.exists() {
