@@ -58,6 +58,14 @@ enum Commands {
         /// Path to the chroot directory
         target: String,
     },
+
+    /// Bakup the choot directory
+    bakup {
+        /// Path to the chroot directory
+        target: String,
+        /// Path to the output file
+        output: String,
+    },
 }
 
 pub fn run() -> Result<()> {
@@ -176,6 +184,16 @@ pub fn run() -> Result<()> {
             chroot::start(target, home, envs, &config.shell.main, &config.shell.args)?;
 
             return Err(std::io::Error::last_os_error().into());
+        }
+        Commands::bakup { target, output } => {
+            let target = Path::new(target.as_str());
+            let output = Path::new(output.as_str());
+
+            println!("bakuping");
+
+            zip::zip(target, output)?;
+
+            println!("bakup is completed");
         }
     }
 

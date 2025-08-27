@@ -6,6 +6,7 @@ use std::{
 
 use anyhow::Result;
 use zip::ZipArchive;
+use zip_extensions::zip_create_from_directory;
 
 pub fn extract<T: AsRef<Path>>(path: T, output: T) -> Result<()> {
     let path = path.as_ref();
@@ -30,5 +31,12 @@ pub fn extract<T: AsRef<Path>>(path: T, output: T) -> Result<()> {
         }
     }
 
+    Ok(())
+}
+
+pub fn zip<T: AsRef<Path>>(target: T, output: T) -> Result<()> {
+    let target = target.as_ref();
+    let output = output.as_ref();
+    zip_create_from_directory(&output.to_path_buf(), &target.to_path_buf())?;
     Ok(())
 }
