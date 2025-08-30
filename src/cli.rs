@@ -142,7 +142,14 @@ pub fn run() -> Result<()> {
             usergroup_file.write_all(usergroup.as_bytes())?;
             let envs = Config::read_config(target)?;
 
-            chroot::start(target, "/root", envs.envs, "/bin/bash", "/tmp/usergroup.sh")?;
+            chroot::start(
+                target,
+                "/root",
+                envs.envs,
+                "/bin/bash",
+                "/tmp/usergroup.sh",
+                args.unshare,
+            )?;
             println!("install is done");
         }
         Commands::Remove { target } => {
