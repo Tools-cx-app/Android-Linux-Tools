@@ -31,7 +31,8 @@ jobs:
       - name: Install build dependencies
         run: |
           sudo apt update
-          sudo apt install -y gcc-multilib zig
+          sudo apt install -y gcc-multilib
+          sudo snap install zig --classic --beta
           cargo install cargo-zigbuild --locked
       
       # 构建项目
