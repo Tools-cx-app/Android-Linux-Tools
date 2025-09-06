@@ -48,7 +48,7 @@ jobs:
 
           mkdir -p output
           cp target/aarch64-linux-android/release/alt ./output/alt-arm64.bin
-          cp target/armv7a-linux-androideab/release/alt ./output/alt-arm32.bin
+          cp target/armv7-linux-androideabi/release/alt ./output/alt-arm32.bin
           zip -j output.zip output/*
       # 上传结果
       - name: Upload
