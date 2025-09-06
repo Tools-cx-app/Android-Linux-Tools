@@ -6,7 +6,9 @@ env:
   CARGO_TERM_COLOR: always
 jobs:
   build:
-    if: github.event_name == 'push'
+    if: |
+      github.event_name == 'push' &&
+      github.event.ref_type == 'branch'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
