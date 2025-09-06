@@ -34,7 +34,7 @@ async def send_telegram_message():
         print("[+] Sending")
         await client.send_file(
             entity=CHAT_ID,
-            file='./target/aarch64-linux-android/release/alt',
+            file='./output.zip',
             caption=get_caption(),
             parse_mode="markdown"
         )
