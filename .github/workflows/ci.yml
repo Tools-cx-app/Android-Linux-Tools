@@ -27,7 +27,7 @@ jobs:
         run: |
           rustup default nightly
           rustup target add aarch64-linux-android
-          rustup target add armv7a-linux-androideab
+          rustup target add armv7-linux-androideabi
           rustup component add rust-src
       
       # 安装构建依赖
