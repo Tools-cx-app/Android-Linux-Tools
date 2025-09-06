@@ -1,0 +1,50 @@
+name: Release Note
+on:
+  push:
+    tags:
+      - '*release*'
+permissions:
+  contents: write
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Generate compare & commits
+        id: info
+        run: |
+          OWNER="${{ github.repository_owner }}"
+          REPO="${{ github.event.repository.name }}"
+          NEW_TAG="${{ github.ref_name }}"
+
+          PREV_TAG=$(git tag --sort=-version:refname | grep -v "$NEW_TAG" | head -n1)
+
+          if [[ -n "$PREV_TAG" ]]; then
+            COMPARE_URL="https://github.com/$OWNER/$REPO/compare/$PREV_TAG...$NEW_TAG"
+            COMMITS=$(git log --pretty=format:"%s" "$PREV_TAG..$NEW_TAG")
+          else
+            COMPARE_URL="https://github.com/$OWNER/$REPO/commits/master"
+            COMMITS=$(git log --pretty=format:"%s" "$(git rev-list --max-parents=0 HEAD)..$NEW_TAG")
+          fi
+
+          ANOTHER=$(echo "$COMMITS" | sed 's/^/  - /')
+
+          echo "compare=$COMPARE_URL" >> $GITHUB_OUTPUT
+          {
+            echo 'another<<EOF'
+            echo "$ANOTHER"
+            echo 'EOF'
+          } >> $GITHUB_OUTPUT
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ github.ref_name }}
+          name: ${{ github.ref_name }}
+          body: |
+            Release ${{ github.ref_name }}
+            compare: ${{ steps.info.outputs.compare }}
+            ${{ steps.info.outputs.another }}
+          draft: false
+          prerelease: false
