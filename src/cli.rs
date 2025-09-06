@@ -18,6 +18,9 @@ use crate::{
     },
 };
 
+const ASH: &str = "/bin/ash";
+const BASH: &str = "/bin/bash";
+
 #[derive(Parser)]
 #[command(
     name = "alt",
@@ -141,12 +144,13 @@ pub fn run() -> Result<()> {
                 .open(target.join("tmp/usergroup.sh"))?;
             usergroup_file.write_all(usergroup.as_bytes())?;
             let envs = Config::read_config(target)?;
+            let shell = if fs::exists(ASH)? { ASH } else { BASH };
 
             chroot::start(
                 target,
                 "/root",
                 envs.envs,
-                "/bin/bash",
+                shell,
                 "/tmp/usergroup.sh",
                 args.unshare,
             )?;
