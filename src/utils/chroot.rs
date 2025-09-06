@@ -13,15 +13,31 @@ pub fn mount(fs_type: &str, source: &str, target: impl AsRef<Path>, flags: u64) 
     let target_cstr = CString::new(option_to_str(target.to_str()))?;
 
     unsafe {
-        if libc::mount(
-            source_cstr.as_ptr(),
-            target_cstr.as_ptr(),
-            fs_type_cstr.as_ptr(),
-            flags as u64,
-            std::ptr::null(),
-        ) != 0
+        #[cfg(target_arch = "arm")]
         {
-            return Err(std::io::Error::last_os_error().into());
+            if libc::mount(
+                source_cstr.as_ptr(),
+                target_cstr.as_ptr(),
+                fs_type_cstr.as_ptr(),
+                flags as u32,
+                std::ptr::null(),
+            ) != 0
+            {
+                return Err(std::io::Error::last_os_error().into());
+            }
+        }
+        #[cfg(target_arch = "aarch64")]
+        {
+            if libc::mount(
+                source_cstr.as_ptr(),
+                target_cstr.as_ptr(),
+                fs_type_cstr.as_ptr(),
+                flags as u64,
+                std::ptr::null(),
+            ) != 0
+            {
+                return Err(std::io::Error::last_os_error().into());
+            }
         }
     }
     Ok(())
