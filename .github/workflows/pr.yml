@@ -25,6 +25,7 @@ jobs:
         run: |
           rustup default nightly
           rustup target add aarch64-linux-android
+          rustup target add armv7a-linux-androideab
           rustup component add rust-src
       
       # 安装构建依赖
@@ -41,5 +42,5 @@ jobs:
           export ANDROID_NDK_ROOT=~/ndk_temp
           
           # 构建发布版本
-          cargo ndk -t arm64-v8a build -r
+          cargo ndk -t arm64-v8a armeabi-v7a build -r
           
