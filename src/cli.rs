@@ -32,7 +32,7 @@ struct Cli {
     #[command(subcommand)]
     command: Commands,
 
-    /// Login is unshare mode
+    /// Login is unshare mode(Experimental new features)
     unshare: bool,
 }
 
