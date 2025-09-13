@@ -1,3 +1,6 @@
+#![deny(clippy::all, clippy::pedantic)]
+#![warn(clippy::nursery)]
+
 mod cli;
 mod config;
 mod utils;

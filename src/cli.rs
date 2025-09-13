@@ -74,6 +74,7 @@ enum Commands {
     },
 }
 
+#[allow(clippy::too_many_lines)]
 pub fn run() -> Result<()> {
     let args = Cli::parse();
     let ksu_susfs = Path::new("/data/adb/ksu/bin/ksu_susfs");
@@ -93,18 +94,16 @@ pub fn run() -> Result<()> {
                 eprintln!("Error: {} does not exist.", rootfs.display());
                 std::process::exit(1);
             }
-            if !target.exists() {
-                if let Err(_) = fs::create_dir_all(target) {
-                    eprintln!("Error: failed to create {}.", target.display());
-                    std::process::exit(1);
-                }
+            if !target.exists() && fs::create_dir_all(target).is_err() {
+                eprintln!("Error: failed to create {}.", target.display());
+                std::process::exit(1);
             }
             if target.is_file() {
                 eprintln!("Error: {} is a file.", target.display());
                 std::process::exit(2);
             }
             let target_dir = target.read_dir()?;
-            if target_dir.count() > 0 as usize {
+            if target_dir.count() > 0_usize {
                 eprintln!("Error: {} is not empty", target.display());
                 std::process::exit(3);
             }
@@ -119,11 +118,11 @@ pub fn run() -> Result<()> {
                 }
                 "xz" => {
                     println!("rootfs type is xz");
-                    tar_tools::extract_tar(rootfs, target, tar_tools::Type::Xz)?;
+                    tar_tools::extract_tar(rootfs, target, &tar_tools::Type::Xz)?;
                 }
                 "gz" => {
                     println!("rootfs type is gz");
-                    tar_tools::extract_tar(rootfs, target, tar_tools::Type::Gz)?;
+                    tar_tools::extract_tar(rootfs, target, &tar_tools::Type::Gz)?;
                 }
                 _ => {
                     eprintln!("Error");
@@ -136,8 +135,9 @@ pub fn run() -> Result<()> {
             let mut resolv = fs::OpenOptions::new()
                 .read(true)
                 .write(true)
-                .create(true)
+                .truncate(true)
                 .open(target.join("/etc/resolv.conf"))?;
+                #[allow(clippy::unused_io_amount)]
             resolv.write(
                 r"nameserver 8.8.8.8
                 nameserver 114.114.114.114"
@@ -146,11 +146,11 @@ pub fn run() -> Result<()> {
 
             let usergroup = include_str!("./useradd.sh");
             let mut usergroup_file = OpenOptions::new()
-                .create(true)
+                .truncate(true)
                 .write(true)
                 .open(target.join("tmp/usergroup.sh"))?;
             usergroup_file.write_all(usergroup.as_bytes())?;
-            let envs = Config::read_config(target)?;
+            let envs = Config::read_config(target);
             let shell = if fs::exists(ASH)? { ASH } else { BASH };
 
             chroot::start(
@@ -168,7 +168,7 @@ pub fn run() -> Result<()> {
 
             unmount(target.join("proc"))?;
             unmount(target.join("sys"))?;
-            fs::set_permissions(target, PermissionsExt::from_mode(0777))?;
+            fs::set_permissions(target, PermissionsExt::from_mode(0o777))?;
             let output = Command::new("chattr")
                 .args(["-R", "-i", option_to_str(target.to_str())])
                 .output()?;
@@ -187,7 +187,7 @@ pub fn run() -> Result<()> {
             let target = Path::new(target.as_str());
             let home = Path::new("/root");
 
-            let config = Config::read_config(target)?;
+            let config = Config::read_config(target);
             let mut envs = vec![
                 ("USER".to_string(), config.user),
                 ("HOME".to_string(), config.home),

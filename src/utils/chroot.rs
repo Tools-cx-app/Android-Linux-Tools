@@ -32,7 +32,7 @@ pub fn mount(fs_type: &str, source: &str, target: impl AsRef<Path>, flags: u64) 
                 source_cstr.as_ptr(),
                 target_cstr.as_ptr(),
                 fs_type_cstr.as_ptr(),
-                flags as u64,
+                flags,
                 std::ptr::null(),
             ) != 0
             {
@@ -172,8 +172,8 @@ pub fn start(
         set_envs(envs)?;
 
         let bash = CString::new(bash)?;
-        let argv = [args.as_ptr(), std::ptr::null()];
-        libc::execvp(bash.as_ptr(), argv.as_ptr());
+        let argv_ptr = [args.as_ptr(), std::ptr::null()];
+        libc::execvp(bash.as_ptr(), argv_ptr.as_ptr());
     }
 
     Ok(())

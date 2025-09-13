@@ -7,7 +7,7 @@ pub enum Type {
     Gz,
 }
 
-pub fn extract_tar<T: AsRef<Path>>(path: T, target: T, tar_type: Type) -> Result<()> {
+pub fn extract_tar<T: AsRef<Path>>(path: T, target: T, tar_type: &Type) -> Result<()> {
     let path = path.as_ref();
     let target = target.as_ref();
     let file = File::open(path)?;

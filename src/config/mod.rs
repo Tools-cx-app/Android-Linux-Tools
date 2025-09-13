@@ -38,7 +38,7 @@ impl Config {
                 main: "bash".to_string(),
                 args: "-l".to_string(),
             },
-            envs: envs,
+            envs,
         };
 
         if config_path.exists() {
@@ -51,10 +51,10 @@ impl Config {
         Ok(())
     }
 
-    pub fn read_config(target: impl AsRef<Path>) -> Result<Self> {
+    pub fn read_config(target: impl AsRef<Path>) -> Self {
         let target = target.as_ref();
         let file = fs::read_to_string(target.join("config.toml")).unwrap();
         let toml: Self = toml::from_str(file.as_str()).unwrap();
-        Ok(toml)
+        toml
     }
 }
