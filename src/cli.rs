@@ -130,13 +130,13 @@ pub fn run() -> Result<()> {
                 }
             }
 
-            fs::remove_file(target.join("/etc/resolv.conf"))?;
+            fs::remove_file(target.join("etc/resolv.conf"))?;
             Config::init(target)?;
             let mut resolv = fs::OpenOptions::new()
                 .read(true)
                 .write(true)
                 .truncate(true)
-                .open(target.join("/etc/resolv.conf"))?;
+                .open(target.join("etc/resolv.conf"))?;
                 #[allow(clippy::unused_io_amount)]
             resolv.write(
                 r"nameserver 8.8.8.8
