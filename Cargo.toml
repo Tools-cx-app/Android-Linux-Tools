@@ -10,7 +10,7 @@ flate2 = "1.1.2"
 libc = "0.2.175"
 serde = { version = "1.0.219", features = ["serde_derive"] }
 tar = "0.4.44"
-toml = "0.9.5"
+toml = "0.9.6"
 user = "0.1.1"
 xz2 = "0.1.7"
 zip = { version = "5.1", default-features = false, features = ["deflate"] }
