@@ -4,7 +4,7 @@ version = "1.0.0"
 edition = "2024"
 
 [dependencies]
-anyhow = "1.0.99"
+anyhow = "1.0.100"
 clap = { version = "4.5.47", features = ["derive"] }
 flate2 = "1.1.2"
 libc = "0.2.175"
