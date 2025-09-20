@@ -33,6 +33,7 @@ struct Cli {
     command: Commands,
 
     /// Login is unshare mode(Experimental new features)
+    #[clap(short, long, default_value = "false")]
     unshare: bool,
 }
 
@@ -137,7 +138,7 @@ pub fn run() -> Result<()> {
                 .write(true)
                 .truncate(true)
                 .open(target.join("etc/resolv.conf"))?;
-                #[allow(clippy::unused_io_amount)]
+            #[allow(clippy::unused_io_amount)]
             resolv.write(
                 r"nameserver 8.8.8.8
                 nameserver 114.114.114.114"
