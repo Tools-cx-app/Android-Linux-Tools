@@ -6,7 +6,7 @@ edition = "2024"
 [dependencies]
 anyhow = "1.0.100"
 clap = { version = "4.5.48", features = ["derive"] }
-flate2 = "1.1.2"
+flate2 = "1.1.4"
 libc = "0.2.176"
 serde = { version = "1.0.227", features = ["serde_derive"] }
 tar = "0.4.44"
